@@ -50,3 +50,12 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}.lichen-app{max-wi
 .diagnostic-toggle span{display:flex;flex-direction:column;gap:2px}
 .diagnostic-toggle strong{font-size:.82rem;color:#e3efd6}
 .diagnostic-toggle small{font-size:.69rem;color:#b7c9b3}
+
+/* Phase 2: compact foliose/planting controls for thumb-sized touch. */
+.view-picks{margin:0 0 22px}
+.control-label{display:block;margin-bottom:9px;color:#c7d7bb;font-size:.68rem;font-weight:800;letter-spacing:.1em}
+.choice-row{display:flex;flex-wrap:wrap;gap:8px}
+.choice-row button{min-height:41px;border:1px solid #536a54;border-radius:9px;background:#203228;color:#c3d5c1;padding:9px 13px;font-weight:800;font-size:.71rem}
+.choice-row button.active-choice{border-color:#def893;color:#142019;background:#d6f884}
+.choice-row button:focus-visible,.tabs button:focus-visible{outline:2px solid #eda3ff;outline-offset:2px}
+@media(max-width:430px){.choice-row button{flex:1;padding:10px 7px;font-size:.64rem}.tabs button{padding-inline:11px}}

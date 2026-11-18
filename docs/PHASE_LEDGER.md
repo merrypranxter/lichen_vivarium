@@ -35,3 +35,17 @@ LOBE (real growth-induced ruffles), SQUAMULE (actual hollow pixie cups), THALLUS
 
 ### Phase 1C priority
 Do side-by-side macro calibration against real `Rhizocarpon` images, improve pore/ridge spectrum and areole masks, then implement true foliose differential-growth membranes. Do not call first-pass renderer photographically indistinguishable until matched-light comparisons.
+
+## 2026-11-18 — Phase 2: living foliose material (source update)
+- **Module:** `src/engine/foliose.ts`. Three initial rock-adapted rosettes containing 23 independently deforming lobes; users can inoculate up to seven rosettes total.
+- **Living growth:** margin-row activation with persistent rest-space tissue. Existing sections stay present as the front develops new geometry. Top/underside surfaces and closed sidewalls give actual biological-like thickness and cast shadows.
+- **Mechanics:** deterministic iterative spring constraints with excess target rest lengths along mature free margins; anchored inner rows, rock nonpenetration, bounded shear and hydration-dependent preferred elevation simulate *differential-growth-induced ruffling*. **Model [B/C]**, not validated experimental lichen mechanics.
+- **Composition:** `LichenView` now owns both AREOLE and LOBE; both advance using the exact same fixed biological time and water setting. Camera, lighting, pigments and canvas capture remain shared.
+- **Controls:** dedicated FOLIOSE tab; show mixed / leafy-only / crust-only, choose rock-tap inoculation type, edge surplus slider, curl slider and live rosette/lobe counts. Default shows both.
+- **Diagnostics/tests:** added `tests/foliose.test.ts` and `npm run test:foliose`; compares same seed, row activation, rock clearance, nonzero metric effect and dry/wet curling.
+- **Preservation:** previously implemented crust fracture network, palette controls, grayscale mode, restart/new design confirmation, PNG and Google AI Studio HMR safeguard remain in code.
+- **Limits:** these lobes do not yet use broadphase shell-to-shell collision, reactive hydration/photobiont material shaders, rhizine anchors, measured cortex roughness, apothecial anatomy or calibrated biological growth. Ruffle waves remain an engineering approximation; compare with real species under raking light before claiming photorealism.
+- **Validation:** source checked and committed only; execute `npm run test:engines`, `npm run lint`, and `npm run build` in the actual AI Studio environment. Inspect final rendering on iPhone Safari. No deployment initiated by this phase.
+
+### Phase 2B target
+Upgrade the foliose solver from bounded spring relaxation to adaptive mesh edge splitting, leaf–leaf contact constraints and wrinkled cortical ridges derived from persistent material stress; add realistic underside/rhizines and species-calibrated photo tests before proceeding to Cladonia scyphi.

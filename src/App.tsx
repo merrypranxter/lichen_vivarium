@@ -1,6 +1,6 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {CrustWorld,GRID} from './engine/biology';
-import {LichenView,type Pigment} from './engine/scene';
+import {LichenView,type Pigment,type GrowthView} from './engine/scene';
 
 const paletteChoices:{id:Pigment;name:string;subtitle:string}[]=[
   {id:'natural',name:'Botanical',subtitle:'Biological reference'},
@@ -13,20 +13,27 @@ export default function App(){
   const view=useRef<LichenView|null>(null);
   const speedRef=useRef(3.333);
   const pauseRef=useRef(false);
+  const plantModeRef=useRef<'crust'|'foliose'>('foliose');
   const [seed,setSeed]=useState(75231);
   const [revision,setRevision]=useState(0);
   const [year,setYear]=useState(0);
   const [count,setCount]=useState(0);
+  const [leafCount,setLeafCount]=useState(0);
+  const [lobeCount,setLobeCount]=useState(0);
   const [coverage,setCoverage]=useState(0);
   const [paused,setPaused]=useState(false);
   const [speed,setSpeed]=useState(3.333);
   const [rain,setRain]=useState(.62);
   const [pigment,setPigment]=useState<Pigment>('natural');
+  const [growthView,setGrowthView]=useState<GrowthView>('mixed');
+  const [plantMode,setPlantMode]=useState<'crust'|'foliose'>('foliose');
+  const [ruffle,setRuffle]=useState(.83);
+  const [curl,setCurl]=useState(.66);
   const [light,setLight]=useState(2.2);
   const [orbit,setOrbit]=useState(0);
   const [zoom,setZoom]=useState(1);
   const [grayscale,setGrayscale]=useState(false);
-  const [tab,setTab]=useState<'growth'|'material'|'camera'>('growth');
+  const [tab,setTab]=useState<'growth'|'foliose'|'material'|'camera'>('foliose');
   const [error,setError]=useState('');
   const [message,setMessage]=useState('Tap the rock to plant another living colony.');
   const restart=useCallback((newSeed:number)=>{
@@ -35,6 +42,7 @@ export default function App(){
   },[]);
   useEffect(()=>{speedRef.current=speed;},[speed]);
   useEffect(()=>{pauseRef.current=paused;},[paused]);
+  useEffect(()=>{plantModeRef.current=plantMode;},[plantMode]);
   useEffect(()=>{
     const element=host.current;
     if(!element)return;
@@ -46,15 +54,27 @@ export default function App(){
       const graphics=new LichenView(element,simulation);
       view.current=graphics;
       graphics.setPigment(pigment);
+      graphics.setGrowthView(growthView);
+      graphics.setRuffle(ruffle);graphics.setCurl(curl);
       graphics.setOrbit(orbit);graphics.setLight(light);
       graphics.setZoom(zoom);graphics.setGrayscale(grayscale);
       graphics.onPlant=(x,y)=>{
+        if(plantModeRef.current==='foliose'){
+          if(graphics.plantFoliose(x,y)){
+            setLeafCount(graphics.foliage.colonyCount);
+            setLobeCount(graphics.foliage.lobes.length);
+            setMessage('A new foliose rosette is taking hold. Watch its tips form living tissue.');
+          }else setMessage('Plant on bare rock; foliose limit is seven rosettes.');
+          return;
+        }
         if(simulation.inoculate(x,y)){
           graphics.update();setCount(simulation.colonyCount);
-          setMessage('A new founding colony is taking hold.');
-        }else setMessage('Plant on the rock surface; maximum 12 colonies.');
+          setMessage('A new crust colony is taking hold.');
+        }else setMessage('Plant on the rock surface; maximum 12 crust colonies.');
       };
       setError('');setCount(simulation.colonyCount);
+      setLeafCount(graphics.foliage.colonyCount);
+      setLobeCount(graphics.foliage.lobes.length);
       const frame=(now:number)=>{
         if(!mounted)return;
         const elapsed=Math.max(0,Math.min(.05,(now-(last||now))/1000));
@@ -63,7 +83,9 @@ export default function App(){
           accumulator+=elapsed*speedRef.current;
           let steps=0;
           while(accumulator>=.2&&steps<20&&simulation.year<100){
-            simulation.step(.2);accumulator-=.2;steps++;
+            simulation.step(.2);
+            graphics.advanceFoliose(.2);
+            accumulator-=.2;steps++;
           }
           if(steps>0)refresh+=elapsed;
           if(refresh>.16||(simulation.year>=100&&!finishedRendered)){graphics.update();refresh=0;if(simulation.year>=100)finishedRendered=true;}
@@ -92,6 +114,9 @@ export default function App(){
   const changePigment=(v:Pigment)=>{setPigment(v);view.current?.setPigment(v);};
   const changeLight=(v:number)=>{setLight(v);view.current?.setLight(v);};
   const changeOrbit=(v:number)=>{setOrbit(v);view.current?.setOrbit(v);};
+  const changeView=(v:GrowthView)=>{setGrowthView(v);view.current?.setGrowthView(v);};
+  const changeRuffle=(v:number)=>{setRuffle(v);view.current?.setRuffle(v);};
+  const changeCurl=(v:number)=>{setCurl(v);view.current?.setCurl(v);};
   const changeZoom=(v:number)=>{setZoom(v);view.current?.setZoom(v);};
   const changeGrayscale=(v:boolean)=>{setGrayscale(v);view.current?.setGrayscale(v);};
   const savePNG=()=>{
@@ -118,7 +143,7 @@ export default function App(){
       </header>
       <div className="viewport" ref={host} aria-label="Interactive three-dimensional living lichen on rock">
         {error&&<div className="fatal"><strong>WebGL could not initialize</strong><p>{error}</p><p>Try reloading in Google AI Studio or Safari.</p></div>}
-        <span className="specimen">RHIZOCARPON-INSPIRED LIVING CRUST</span>
+        <span className="specimen">LIVING AREOLE + ROCK-GROWING FOLIOSE TISSUE</span>
         <div className="age">{year.toFixed(1)} <small>YEARS</small></div>
       </div>
       <div className="player">
@@ -131,7 +156,8 @@ export default function App(){
     </div>
     <section className="controls">
       <div className="tabs" role="tablist" aria-label="Art controls">
-        <button role="tab" aria-selected={tab==='growth'} className={tab==='growth'?'chosen':''} onClick={()=>setTab('growth')}>GROWTH</button>
+        <button role="tab" aria-selected={tab==='growth'} className={tab==='growth'?'chosen':''} onClick={()=>setTab('growth')}>CRUST</button>
+        <button role="tab" aria-selected={tab==='foliose'} className={tab==='foliose'?'chosen':''} onClick={()=>setTab('foliose')}>FOLIOSE</button>
         <button role="tab" aria-selected={tab==='material'} className={tab==='material'?'chosen':''} onClick={()=>setTab('material')}>PIGMENT + WATER</button>
         <button role="tab" aria-selected={tab==='camera'} className={tab==='camera'?'chosen':''} onClick={()=>setTab('camera')}>CAMERA + LIGHT</button>
       </div>
@@ -146,6 +172,29 @@ export default function App(){
             <button onClick={newRock}>✳ NEW DESIGN</button>
             <button className="outline" onClick={()=>{if(window.confirm('Restart this seed from the beginning?'))restart(seed);}}>↺ RESTART</button>
           </div>
+        </>}
+        {tab==='foliose'&&<>
+          <div className="panel-heading"><h2>Living leafy lobes</h2><span>NEW: FOLIOSE ENGINE</span></div>
+          <p className="help">Saxicolous, Xanthoria-inspired rosettes. Each lobe grows new margin sections, has upper and lower tissue, and develops 3D bends as its free edge gains more material than the anchored center.</p>
+          <div className="view-picks">
+            <span className="control-label">VIEW THESE ORGANISMS</span>
+            <div className="choice-row">
+              {(['mixed','foliose','crust'] as GrowthView[]).map(v=><button key={v} className={growthView===v?'active-choice':''} onClick={()=>changeView(v)}>{v==='mixed'?'BOTH':v==='foliose'?'LEAFY ONLY':'CRUST ONLY'}</button>)}
+            </div>
+          </div>
+          <div className="view-picks">
+            <span className="control-label">TAP THE ROCK TO PLANT</span>
+            <div className="choice-row">
+              <button className={plantMode==='foliose'?'active-choice':''} onClick={()=>setPlantMode('foliose')}>LEAFY ROSETTE</button>
+              <button className={plantMode==='crust'?'active-choice':''} onClick={()=>setPlantMode('crust')}>CRUST COLONY</button>
+            </div>
+          </div>
+          <label className="control"><span>Growing-edge surplus (ruffles)</span><b>{Math.round(ruffle*100)}%</b>
+            <input type="range" min="0" max="1.6" step=".02" value={ruffle} onChange={e=>changeRuffle(Number(e.target.value))}/></label>
+          <label className="control"><span>Desiccation-driven curling</span><b>{Math.round(curl*100)}%</b>
+            <input type="range" min="0" max="1.5" step=".02" value={curl} onChange={e=>changeCurl(Number(e.target.value))}/></label>
+          <div className="stats"><span><b>{leafCount}</b> foliose rosettes</span><span><b>{lobeCount}</b> individual lobes</span></div>
+          <p className="annotation">These controls change physical tissue evolution as the century advances. The first shell solver has substrate nonpenetration, but complete leaf-to-leaf collision and photo-calibrated anatomy still need further work.</p>
         </>}
         {tab==='material'&&<>
           <div className="panel-heading"><h2>Cortex pigmentation</h2><span>REAL GEOMETRY · ALIEN PALETTES</span></div>
@@ -172,7 +221,7 @@ export default function App(){
           <button className="outline" onClick={()=>{changeLight(2.2);changeOrbit(0);changeZoom(1);changeGrayscale(false);}}>RESET CAMERA + LIGHT</button>
         </>}
         <div className="notice">{message}</div>
-        <p className="scientific">PHASE 1B · Propagating, irreversible fracture network; beveled 3D areole edges and age-conditioned cortex microtexture. A species-inspired growth approximation, not calibrated ecology. Photorealism still needs reference-photo testing. Foliose sheets, pixie cups and MP4 are later phases.</p>
+        <p className="scientific">PHASE 2 · AREOLE + LOBE now share one 100-year clock and moisture field. Foliose growth uses a persistent double-surface shell, margin-row deposition, rest-metric spring relaxation and moisture-linked curling. Still a biological-inspired engineering model, not calibrated natural growth. Pixie cups and offline MP4 remain upcoming.</p>
       </div>
     </section>
   </main>;

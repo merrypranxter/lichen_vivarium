@@ -41,3 +41,14 @@ Full research architecture: [LICHENARIUM Blueprint](docs/LICHENARIUM_BLUEPRINT.m
 - `npm run test:biology` validates deterministic growth/fractures without a GPU.
 
 These are science-inspired approximations; full real-photography calibration remains unfinished.
+
+## Phase 2 — actual foliose tissue (source implementation)
+- New independent `src/engine/foliose.ts` module. Three rock-compatible, *Xanthoria*-inspired foliose rosettes comprise 23 separate, living lobes. More can be planted by tapping the rock using the FOLIOSE tab.
+- Each lobe has persistent 3D tissue/rest coordinates, physically distinct top and bottom surfaces, real side-wall thickness, and growing-tip mesh rows. Existing tissue remains; new mesh sections appear at active margins.
+- A bounded fixed-step spring-constraint solver advances locally surplus rest lengths at free margins, generating buckling and uneven uplift; drying changes the preferred curl of partially anchored tissue. The growth is a physically motivated computational analogy, not calibrated life-history data.
+- Crust and foliose share the **same 100-year biological timeline and rainfall field**. Toggle **BOTH / LEAFY ONLY / CRUST ONLY**, select which kind of organism a rock tap seeds, and adjust edge surplus and desiccation curl.
+- Natural/yellow-orange, ultraviolet and opaline pigments apply to foliose material independently of growth state.
+- Run `npm run test:foliose` or `npm run test:engines` for seed replay, newly deposited mesh geometry, bounded rock clearance, curl behavior and touch planting.
+- Leaf-to-leaf collision, species-calibrated anatomy, matching to macro reference photos, photorealistic upper/lower textures, 30-second MP4, and GPU/phone profiling remain **future work**. Do not assume these are complete.
+
+No Netlify release was initiated. Preserve AI Studio Vite configuration.

@@ -1,7 +1,9 @@
 import * as THREE from 'three';
+import {FolioseGarden} from './foliose';
 import {CrustWorld, EXTENT, GRID, fbm, hash, onRock, stoneRGB, stoneZ} from './biology';
 
 export type Pigment = 'natural' | 'ultraviolet' | 'opal';
+export type GrowthView = 'mixed' | 'crust' | 'foliose';
 const SLICES=160;
 
 /** Rest-space lookup: built once per seed, reused every biological snapshot. */
@@ -177,6 +179,8 @@ export class LichenView{
   private bump:THREE.DataTexture;
   private tissueBump:THREE.DataTexture;
   private readonly atlas:SurfaceAtlas;
+  readonly foliage:FolioseGarden;
+  private growthView:GrowthView='mixed';
   private grayscale=false;
   private discs:THREE.InstancedMesh;
   private rims:THREE.InstancedMesh;
@@ -221,6 +225,8 @@ export class LichenView{
     this.discs.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this.rims.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this.scene.add(this.discs,this.rims);
+    this.foliage=new FolioseGarden(world);
+    this.scene.add(this.foliage.group);
     this.setOrbit(0);this.setLight(2.2);
     this.ro=new ResizeObserver(()=>this.resize());this.ro.observe(host);this.resize();
     this.renderer.domElement.addEventListener('pointerdown',this.pointerDown);
@@ -251,8 +257,24 @@ export class LichenView{
     this.renderer.domElement.style.filter=on?'grayscale(1)':'';
   }
   setPigment(mode:Pigment){
-    if(this.pigment!==mode){this.pigment=mode;this.update();}
+    if(this.pigment===mode)return;
+    this.pigment=mode;
+    this.foliage.setPigment(mode);
+    this.update();
   }
+  setGrowthView(mode:GrowthView){
+    this.growthView=mode;
+    const crustVisible=mode!=='foliose';
+    this.tissue.visible=crustVisible;
+    this.discs.visible=crustVisible;
+    this.rims.visible=crustVisible;
+    this.foliage.setVisible(mode!=='crust');
+  }
+  setRuffle(value:number){this.foliage.setRuffle(value);}
+  setCurl(value:number){this.foliage.setCurl(value);}
+  plantFoliose(x:number,y:number){return this.foliage.plant(x,y);}
+  advanceFoliose(dtYears:number){this.foliage.step(dtYears,this.world.rainfall);}
+  folioseStats(){return this.foliage.metrics();}
   update(){
     if(this.disposed)return;
     const next=makeTissue(this.world,this.pigment,this.atlas);
@@ -274,6 +296,7 @@ export class LichenView{
     this.discs.count=this.rims.count=count;
     this.discs.instanceMatrix.needsUpdate=true;
     this.rims.instanceMatrix.needsUpdate=true;
+    this.foliage.update();
   }
   render(){if(!this.disposed)this.renderer.render(this.scene,this.camera);}
   png():string{
@@ -306,6 +329,7 @@ export class LichenView{
         ms.forEach(m=>m.dispose());
       }
     });
+    this.foliage.dispose();
     this.bump.dispose();this.tissueBump.dispose();this.renderer.dispose();
     if(this.renderer.domElement.parentNode===this.host)this.host.removeChild(this.renderer.domElement);
   }
