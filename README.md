@@ -1,30 +1,34 @@
-# LICHENARIUM / Lichen Vivarium
+# LICHENARIUM · Lichen Vivarium
 
-A living, procedural, macro-photographic lichen art app: **100 simulated years of colonies growing on rock in 30 seconds**, with anatomically credible 3D morphology and alien psychedelic pigmentation.
+A physically inspired living-crust experiment aiming eventually for 100 simulated years of credible lichen life in 30 seconds.
 
-## Current status
-**Clean Google AI Studio-compatible starting point — no simulation engine implemented yet.** The previous empty React starter component was replaced on purpose. Start implementation with one rock + one realistic crustose/areolate colony before adding other organisms.
+## Phase 1 — implemented in source
+- A real-time three-dimensional rock mesh with irregular height, an irregular outline, geology-colored vertices, micro-bump detail and movable macro lighting.
+- **AREOLE**: seeded persistent growth state per rock cell (colony ID, biomass, age, substrate suitability, drying stress, irreversible damage).
+- Tissue spreads only from existing colonies. A separate raised mesh grows thicker; aging activates crack valleys with physical height variation and dark exposed fissures.
+- Sparse, mature-area apothecial discs; tap to plant another colony; play/pause; change years per second and water; move light/camera; natural / ultraviolet / opaline pigments; reset confirmation and PNG current-frame capture.
+- Natural pigment mode is the realism baseline, psychedelia is an appearance choice. These are species-inspired numerical approximations, **not scientifically calibrated 100-year kinetics**.
+- iPhone-oriented fixed art and control tabs. Browser performance, photorealism and exports still need device-level validation.
 
-**[Read the full technical blueprint](docs/LICHENARIUM_BLUEPRINT.md)**
+## Google AI Studio
+Pull the GitHub **main** branch into your Google AI Studio project. The repo retains the existing Vite/React/TypeScript project, AI Studio HMR guard and metadata.
 
-## Run in Google AI Studio / locally
-This repository retains the Vite + React + TypeScript setup and the AI Studio-specific settings in `vite.config.ts` and `metadata.json`. Usual commands:
+Local commands:
+- `npm install`
+- `npm run lint`
+- `npm run dev`
+- `npm run build`
 
-```sh
-npm install
-npm run dev
-npm run lint
-npm run build
-```
+**No Netlify deployment was initiated.** No external API key is necessary for rendering Phase 1.
 
-There is **no Netlify deployment in this project workflow**. No external image or paid API calls are required to render the current shell. Vite can be statically hosted later if requested.
+## Remaining quality gates
+- Run lint/build and load in AI Studio, then inspect on iPhone Safari. No device test claimed.
+- Compare matched grayscale/raking-light images to true `Rhizocarpon` macro photographs; tune rock silhouettes, areole thickness distributions, apothecial details, crack topology and tissue reflectance.
+- Replace fixed Voronoi-based crack sites with a fully propagated persistent fracture graph.
+- Add advanced microscopic cortex anatomy, hydrological optical response, wet/dry hysteresis.
+- Phase 2: real growing, ruffled, overlapping **LOBE** sheets.
+- Phase 3: actual hollow pixie cups from mature basal squamules.
 
-## Build philosophy
-- Biological structure and light response must look real before psychedelic pigment.
-- Geometry changes over biological time; pixel effects are not a substitute for anatomy.
-- Mobile WebGL2 first; use progressive quality tiers and graceful feature fallbacks.
-- Deterministic fixed-time frame output for proper high-quality MP4/GIF; a 100-year progression is intentionally not a seamless loop.
-- Keep previous Git commits as history for recovery. Only delete obsolete starter source; do not remove AI Studio runtime configuration.
+Full research architecture: [LICHENARIUM Blueprint](docs/LICHENARIUM_BLUEPRINT.md).
 
-## Next slice
-Phase 1: a convincing rock substrate, stable camera, reference-gray lighting and the AREOLE crust growth engine.
+**Export note:** PNG captures the current canvas. MP4/GIF encoding is not implemented yet. Natural multi-year growth is intentionally nonlooping.
