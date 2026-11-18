@@ -39,7 +39,7 @@ export function stoneRGB(x:number,y:number,s:number):[number,number,number]{
   return [v*(.61+.22*mineral),v*(.62+.08*mineral),v*(.65+.14*(1-mineral))];
 }
 export interface TissueSample {
-  biomass:number; age:number; owner:number; fracture:number; edge:number; hydration:number;
+  biomass:number; age:number; owner:number; fracture:number; edge:number; hydration:number; guide:number;
 }
 export class CrustWorld {
   readonly seed:number;
@@ -47,6 +47,7 @@ export class CrustWorld {
   readonly biomass=new Float32Array(GRID*GRID);
   readonly age=new Float32Array(GRID*GRID);
   readonly stress=new Float32Array(GRID*GRID);
+  /** Persistent fracture severity; written only by advanceFractures(). */
   readonly damage=new Float32Array(GRID*GRID);
   readonly resource=new Float32Array(GRID*GRID);
   readonly crackSite=new Float32Array(GRID*GRID);
@@ -106,9 +107,6 @@ export class CrustWorld {
         this.age[k]+=dt;
         nextBio[k]=clamp(this.biomass[k]+dt*(.20*vitality-.018*(1-water)));
         this.stress[k]=clamp(this.stress[k]+dt*(.011+.07*(1-water)*Math.abs(Math.sin(this.year*.64+res*2))));
-        if(this.age[k]>5&&this.crackSite[k]>.21&&this.stress[k]>.14){
-          this.damage[k]=clamp(this.damage[k]+dt*.055*this.crackSite[k]*(.5+1.3*this.stress[k]));
-        }
         if(this.age[k]>38&&water<.34)nextBio[k]=Math.max(.24,nextBio[k]-dt*.025);
         continue;
       }
@@ -127,24 +125,67 @@ export class CrustWorld {
       }
     }
     this.owner.set(nextOwner);this.biomass.set(nextBio);
+    this.advanceFractures(dt);
+  }
+  /**
+   * Raster fracture graph, not a painted Voronoi decal.
+   * Nucleation happens at rare, mature, high-strain sites. Neighbor-to-neighbor
+   * propagation follows an irregular stress-tolerant areole guide.
+   * Prior damage is immutable: no visual crack can "unhappen" on hydration.
+   *
+   * Mechanism classification: physically motivated *computational analogy*.
+   * The thresholds/rates here are artist-tunable, not measured lichen kinetics.
+   */
+  private advanceFractures(dt:number):void{
+    const next=this.damage.slice();
+    for(let j=2;j<GRID-2;j++)for(let i=2;i<GRID-2;i++){
+      const k=j*GRID+i,id=this.owner[k];
+      if(!id||this.age[k]<7||this.biomass[k]<.38||this.stress[k]<.16)continue;
+      const old=this.damage[k],guide=this.crackSite[k];
+      if(old>.001){
+        // Open splits gradually deepen as adjacent tissue weathers.
+        next[k]=clamp(old+dt*(.065+.125*this.stress[k]));
+        continue;
+      }
+      const nucleation=guide>.66&&this.stress[k]>.27&&this.age[k]>11
+        &&hash(i,j,this.seed+731)>.984;
+      if(nucleation){next[k]=Math.max(next[k],.29);continue;}
+      // A front can only pass between cells belonging to the *same* colony.
+      // A high guide value directs the fracture; an occasional off-guide
+      // passage creates irregular junctions and short secondary branches.
+      if(guide<.22||hash(i,j,this.seed+517)<.085)continue;
+      let neighborStrength=0;
+      const offsets=[-GRID,-GRID-1,-GRID+1,-1,1,GRID,GRID-1,GRID+1];
+      for(let q=0;q<offsets.length;q++){
+        const n=k+offsets[q];
+        if(this.owner[n]===id&&this.damage[n]>.24){
+          neighborStrength=Math.max(neighborStrength,this.damage[n]);
+        }
+      }
+      if(neighborStrength<=0)continue;
+      const propagation=dt*(.31+.70*guide)*(.7+.55*this.stress[k])
+        *(.75+.25*neighborStrength);
+      next[k]=clamp(propagation);
+    }
+    this.damage.set(next);
   }
   sample(x:number,y:number):TissueSample{
     const gx=(x/EXTENT+.5)*(GRID-1),gy=(y/EXTENT+.5)*(GRID-1);
     const i=Math.floor(gx),j=Math.floor(gy);
     if(i<0||j<0||i>=GRID-1||j>=GRID-1||!onRock(x,y,this.seed)){
-      return {biomass:0,age:0,owner:0,fracture:0,edge:1,hydration:.4};
+      return {biomass:0,age:0,owner:0,fracture:0,edge:1,hydration:.4,guide:0};
     }
     const u=smooth(gx-i),v=smooth(gy-j);
     const ks=[j*GRID+i,j*GRID+i+1,(j+1)*GRID+i,(j+1)*GRID+i+1];
     const ws=[(1-u)*(1-v),u*(1-v),(1-u)*v,u*v];
-    let b=0,age=0,fracture=0,owner=0,dominant=0;
+    let b=0,age=0,fracture=0,guide=0,resource=0,owner=0,dominant=0;
     for(let a=0;a<4;a++){
       const k=ks[a],w=ws[a];b+=w*this.biomass[k];age+=w*this.age[k]*this.biomass[k];
-      fracture+=w*this.damage[k]*this.crackSite[k];
+      fracture+=w*this.damage[k];guide+=w*this.crackSite[k];resource+=w*this.resource[k];
       if(w*this.biomass[k]>dominant){dominant=w*this.biomass[k];owner=this.owner[k];}
     }
     age/=Math.max(.001,b);
-    return {biomass:b,age,fracture,owner,edge:1-smooth((b-.12)/.47),
-      hydration:clamp(this.rainfall*(.68+.52*fbm(x*.5,y*.5,this.seed+19)))};
+    return {biomass:b,age,fracture,guide,owner,edge:1-smooth((b-.12)/.47),
+      hydration:clamp(this.rainfall*(.54+.60*resource))};
   }
 }

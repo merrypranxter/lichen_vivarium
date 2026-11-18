@@ -3,6 +3,25 @@ import {CrustWorld, EXTENT, GRID, fbm, hash, onRock, stoneRGB, stoneZ} from './b
 
 export type Pigment = 'natural' | 'ultraviolet' | 'opal';
 const SLICES=160;
+
+/** Rest-space lookup: built once per seed, reused every biological snapshot. */
+type SurfaceAtlas = {
+  rock: Float32Array; relief: Float32Array; pigment: Float32Array; grain: Float32Array;
+};
+function createSurfaceAtlas(world:CrustWorld):SurfaceAtlas {
+  const count=(SLICES+1)*(SLICES+1);
+  const rock=new Float32Array(count),relief=new Float32Array(count);
+  const pigment=new Float32Array(count),grain=new Float32Array(count);
+  for(let k=0;k<count;k++){
+    const col=k%(SLICES+1),row=Math.floor(k/(SLICES+1));
+    const x=(col/SLICES-.5)*EXTENT,y=(.5-row/SLICES)*EXTENT;
+    rock[k]=stoneZ(x,y,world.seed);
+    relief[k]=fbm(x*10.8,y*9.8,world.seed+299);
+    pigment[k]=fbm(x*3.7,y*4.2,world.seed+111);
+    grain[k]=fbm(x*10.1,y*9.7,world.seed+331);
+  }
+  return {rock,relief,pigment,grain};
+}
 const clamp=(v:number,a=0,b=1)=>Math.min(b,Math.max(a,v));
 function makeBump(seed:number):THREE.DataTexture{
   const n=512,bytes=new Uint8Array(n*n*4);
@@ -15,6 +34,34 @@ function makeBump(seed:number):THREE.DataTexture{
   tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
   tex.minFilter=THREE.LinearMipmapLinearFilter;
   tex.magFilter=THREE.LinearFilter;tex.generateMipmaps=true;tex.needsUpdate=true;
+  return tex;
+}
+/**
+ * Calibratable-looking cortical microrelief: a two-scale fibrous matrix
+ * interrupted by sparse pore wells and minute raised grains.
+ * One stable object-space map; no frame-randomized static/noise swimming.
+ * Morphological appearance model, not tissue-calibrated microscopy.
+ */
+function makeCortexBump(seed:number):THREE.DataTexture{
+  const n=512,bytes=new Uint8Array(n*n*4);
+  for(let y=0;y<n;y++)for(let x=0;x<n;x++){
+    const u=x/n,v=y/n,px=u*86,py=v*86,ix=Math.floor(px),iy=Math.floor(py);
+    const cx=ix+.18+.64*hash(ix,iy,seed+121);
+    const cy=iy+.18+.64*hash(ix,iy,seed+122);
+    const dist=Math.hypot(px-cx,py-cy);
+    const pore=hash(ix,iy,seed+123)>.48?Math.exp(-32*dist*dist):0;
+    const r=hash(x,y,seed+124);
+    const matrix=fbm(u*70,v*70,seed+32);
+    const fiber=.035*Math.sin(2*Math.PI*(u*113+v*31+matrix*.9));
+    const height=clamp(.32+.39*matrix+.16*r+fiber-.35*pore);
+    const k=4*(y*n+x),c=Math.round(height*255);
+    bytes[k]=bytes[k+1]=bytes[k+2]=c;bytes[k+3]=255;
+  }
+  const tex=new THREE.DataTexture(bytes,n,n,THREE.RGBAFormat);
+  tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
+  tex.minFilter=THREE.LinearMipmapLinearFilter;
+  tex.magFilter=THREE.LinearFilter;
+  tex.generateMipmaps=true;tex.needsUpdate=true;
   return tex;
 }
 function makeRock(world:CrustWorld,bump:THREE.Texture):THREE.Mesh{
@@ -65,8 +112,7 @@ function makeSide(world:CrustWorld):THREE.Mesh{
   const mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,side:THREE.DoubleSide}));
   mesh.castShadow=true;mesh.receiveShadow=true;return mesh;
 }
-function pigmentColor(x:number,y:number,owner:number,age:number,wet:number,edge:number,pigment:Pigment,seed:number):THREE.Color{
-  const n=fbm(x*3.7,y*4.2,seed+111),granule=fbm(x*10.1,y*9.7,seed+331);
+function pigmentColor(x:number,y:number,owner:number,age:number,wet:number,edge:number,pigment:Pigment,n:number,granule:number):THREE.Color{
   const old=clamp(age/45),jitter=.1*(n-.5)+.08*(granule-.5);
   let c:THREE.Color;
   if(pigment==='natural'){
@@ -80,24 +126,33 @@ function pigmentColor(x:number,y:number,owner:number,age:number,wet:number,edge:
     c=new THREE.Color().setHSL((h+.11*n+.05*Math.sin(x*2.1+y*2.8))%1,.82,.43+.27*n);
   }
   c.multiplyScalar((1-old*.17)*(.86+.32*granule));
+  // Fine chalky deposits develop with tissue age, irrespective of fantasy hue.
+  const pruina=clamp((granule-.61)*3)*clamp((age-12)/25)*.17;
+  c.lerp(new THREE.Color(.74,.74,.68),pruina);
   c.lerp(new THREE.Color(.045,.053,.044),edge*.68);
   return c;
 }
-function makeTissue(world:CrustWorld,pigment:Pigment):THREE.BufferGeometry{
+function makeTissue(world:CrustWorld,pigment:Pigment,atlas:SurfaceAtlas):THREE.BufferGeometry{
   const geo=new THREE.PlaneGeometry(EXTENT,EXTENT,SLICES,SLICES);
   const pos=geo.attributes.position as THREE.BufferAttribute;
   const colors=new Float32Array(pos.count*3),valid=new Uint8Array(pos.count);
   for(let k=0;k<pos.count;k++){
     const x=pos.getX(k),y=pos.getY(k),s=world.sample(x,y);
     valid[k]=s.biomass>=.105?1:0;
-    const grain=fbm(x*10.8,y*9.8,world.seed+299);
+    const grain=atlas.relief[k];
     const thin=clamp((s.biomass-.08)*2);
-    const lifted=(.016+.075*Math.sqrt(clamp(s.biomass))+.026*grain)*thin;
-    const crack=clamp(s.fracture*2.15);
-    // Real height drop at cracks; its shadows respond to raking light.
-    pos.setZ(k,stoneZ(x,y,world.seed)+.012+lifted*(1-.93*crack));
-    const c=pigmentColor(x,y,s.owner,s.age,s.hydration,s.edge,pigment,world.seed);
-    c.lerp(new THREE.Color(.025,.025,.025),crack*.85);
+    const oldEnough=clamp((s.age-3)/12);
+    const crack=clamp(s.fracture*3.25);
+    // Growing cortical plates develop uneven crowns, fractured troughs,
+    // and a narrow raised bevel along each newly opened fissure.
+    const crown=.021+.090*Math.sqrt(clamp(s.biomass))+.040*grain;
+    const areole=.026*oldEnough*(1-clamp(s.guide))*grain;
+    const edgeBevel=.048*Math.sqrt(Math.max(0,crack*(1-crack)));
+    const relief=(crown+areole)*(1-.985*crack)+edgeBevel;
+    pos.setZ(k,atlas.rock[k]+.008+thin*relief);
+    const c=pigmentColor(x,y,s.owner,s.age,s.hydration,s.edge,pigment,atlas.pigment[k],atlas.grain[k]);
+    // Fissure material is an exposed dark underlying layer, not an overlay.
+    c.lerp(new THREE.Color(.025,.028,.024),crack*.86);
     colors[k*3]=c.r;colors[k*3+1]=c.g;colors[k*3+2]=c.b;
   }
   const src=geo.index!.array,tri:number[]=[];
@@ -121,6 +176,8 @@ export class LichenView{
   private key:THREE.DirectionalLight;
   private bump:THREE.DataTexture;
   private tissueBump:THREE.DataTexture;
+  private readonly atlas:SurfaceAtlas;
+  private grayscale=false;
   private discs:THREE.InstancedMesh;
   private rims:THREE.InstancedMesh;
   private ro:ResizeObserver;
@@ -140,14 +197,15 @@ export class LichenView{
     this.scene.background=new THREE.Color('#101714');
     host.appendChild(this.renderer.domElement);
     this.bump=makeBump(world.seed+7);
-    this.tissueBump=makeBump(world.seed+99);
+    this.tissueBump=makeCortexBump(world.seed+99);
+    this.atlas=createSurfaceAtlas(world);
     this.stone=makeRock(world,this.bump);
     this.scene.add(this.stone,makeSide(world));
     const tissueMaterial=new THREE.MeshStandardMaterial({
       vertexColors:true,roughness:.88,metalness:0,side:THREE.DoubleSide,
       bumpMap:this.tissueBump,bumpScale:.043,polygonOffset:true,polygonOffsetFactor:-1
     });
-    this.tissue=new THREE.Mesh(makeTissue(world,this.pigment),tissueMaterial);
+    this.tissue=new THREE.Mesh(makeTissue(world,this.pigment,this.atlas),tissueMaterial);
     this.tissue.castShadow=true;this.tissue.receiveShadow=true;this.scene.add(this.tissue);
     this.scene.add(new THREE.HemisphereLight(0xe5efff,0x453529,1.35));
     this.key=new THREE.DirectionalLight(0xffe9d0,2);
@@ -184,12 +242,20 @@ export class LichenView{
     this.camera.lookAt(0,0,0);
   }
   setLight(angle:number){this.key.position.set(Math.cos(angle)*8,Math.sin(angle)*7,6.2);}
+  setZoom(zoom:number){
+    this.camera.fov=clamp(39/zoom,23,53);
+    this.camera.updateProjectionMatrix();
+  }
+  setGrayscale(on:boolean){
+    this.grayscale=on;
+    this.renderer.domElement.style.filter=on?'grayscale(1)':'';
+  }
   setPigment(mode:Pigment){
     if(this.pigment!==mode){this.pigment=mode;this.update();}
   }
   update(){
     if(this.disposed)return;
-    const next=makeTissue(this.world,this.pigment);
+    const next=makeTissue(this.world,this.pigment,this.atlas);
     this.tissue.geometry.dispose();this.tissue.geometry=next;
     const o=new THREE.Object3D();let count=0;
     for(let j=5;j<GRID-5&&count<320;j+=3)for(let i=5;i<GRID-5&&count<320;i+=3){
@@ -210,7 +276,18 @@ export class LichenView{
     this.rims.instanceMatrix.needsUpdate=true;
   }
   render(){if(!this.disposed)this.renderer.render(this.scene,this.camera);}
-  png():string{this.render();return this.renderer.domElement.toDataURL('image/png');}
+  png():string{
+    this.render();
+    if(!this.grayscale)return this.renderer.domElement.toDataURL('image/png');
+    const original=this.renderer.domElement;
+    const copy=document.createElement('canvas');
+    copy.width=original.width;copy.height=original.height;
+    const context=copy.getContext('2d');
+    if(!context)throw new Error('Canvas capture unavailable');
+    context.filter='grayscale(100%)';
+    context.drawImage(original,0,0);
+    return copy.toDataURL('image/png');
+  }
   resize(){
     if(this.disposed)return;
     const w=Math.max(1,this.host.clientWidth),h=Math.max(1,this.host.clientHeight);

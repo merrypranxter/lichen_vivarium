@@ -32,3 +32,12 @@ Local commands:
 Full research architecture: [LICHENARIUM Blueprint](docs/LICHENARIUM_BLUEPRINT.md).
 
 **Export note:** PNG captures the current canvas. MP4/GIF encoding is not implemented yet. Natural multi-year growth is intentionally nonlooping.
+
+## Phase 1B: fracture and anatomy refinement
+- Mature strain initiates spatial crack networks, which spread along neighboring tissue instead of revealing all Voronoi edges together.
+- The living crust has age-conditioned raised areole crowns, carved fissure valleys, and beveled margins plus a separate procedural cortex bump atlas with pit-like pores.
+- Macro magnification and grayscale anatomy diagnostics added under **Camera + Light**; PNG reflects the grayscale mode.
+- Rest-space material coordinates are cached for faster mesh updates and reduced texture flicker.
+- `npm run test:biology` validates deterministic growth/fractures without a GPU.
+
+These are science-inspired approximations; full real-photography calibration remains unfinished.

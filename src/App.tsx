@@ -24,6 +24,8 @@ export default function App(){
   const [pigment,setPigment]=useState<Pigment>('natural');
   const [light,setLight]=useState(2.2);
   const [orbit,setOrbit]=useState(0);
+  const [zoom,setZoom]=useState(1);
+  const [grayscale,setGrayscale]=useState(false);
   const [tab,setTab]=useState<'growth'|'material'|'camera'>('growth');
   const [error,setError]=useState('');
   const [message,setMessage]=useState('Tap the rock to plant another living colony.');
@@ -45,6 +47,7 @@ export default function App(){
       view.current=graphics;
       graphics.setPigment(pigment);
       graphics.setOrbit(orbit);graphics.setLight(light);
+      graphics.setZoom(zoom);graphics.setGrayscale(grayscale);
       graphics.onPlant=(x,y)=>{
         if(simulation.inoculate(x,y)){
           graphics.update();setCount(simulation.colonyCount);
@@ -89,6 +92,8 @@ export default function App(){
   const changePigment=(v:Pigment)=>{setPigment(v);view.current?.setPigment(v);};
   const changeLight=(v:number)=>{setLight(v);view.current?.setLight(v);};
   const changeOrbit=(v:number)=>{setOrbit(v);view.current?.setOrbit(v);};
+  const changeZoom=(v:number)=>{setZoom(v);view.current?.setZoom(v);};
+  const changeGrayscale=(v:boolean)=>{setGrayscale(v);view.current?.setGrayscale(v);};
   const savePNG=()=>{
     try{
       const image=view.current?.png();if(!image)return;
@@ -154,15 +159,20 @@ export default function App(){
         </>}
         {tab==='camera'&&<>
           <div className="panel-heading"><h2>Macro laboratory</h2><span>LET LIGHT PROVE THE TEXTURE</span></div>
-          <p className="help">Move the raking light and viewpoint. Raised lobes and cracks must change their shadows like actual tissue, not painted effects.</p>
+          <p className="help">Study actual raised areoles, fractured cortex, and shadow relief. Switch to grayscale so the pigment cannot conceal weak geometry.</p>
           <label className="control"><span>Raking-light direction</span><b>{Math.round(light*180/Math.PI)}°</b>
             <input type="range" min="0" max="6.28" step=".03" value={light} onChange={e=>changeLight(Number(e.target.value))}/></label>
           <label className="control"><span>Camera angle</span><b>{Math.round(orbit*180/Math.PI)}°</b>
             <input type="range" min="-.9" max=".9" step=".02" value={orbit} onChange={e=>changeOrbit(Number(e.target.value))}/></label>
-          <button className="outline" onClick={()=>{changeLight(2.2);changeOrbit(0);}}>RESET CAMERA + LIGHT</button>
+          <label className="control"><span>Macro magnification</span><b>{zoom.toFixed(2)}×</b>
+            <input type="range" min=".8" max="1.65" step=".05" value={zoom} onChange={e=>changeZoom(Number(e.target.value))}/></label>
+          <label className="diagnostic-toggle"><input type="checkbox" checked={grayscale} onChange={e=>changeGrayscale(e.target.checked)}/>
+            <span><strong>Grayscale anatomy test</strong><small>Applies to the live view and exported PNG</small></span>
+          </label>
+          <button className="outline" onClick={()=>{changeLight(2.2);changeOrbit(0);changeZoom(1);changeGrayscale(false);}}>RESET CAMERA + LIGHT</button>
         </>}
         <div className="notice">{message}</div>
-        <p className="scientific">PHASE 1 · A persistent, species-inspired visual growth simulation, not a calibrated ecological forecast. Photorealism needs macro-photo comparison. Ruffled foliose leaves, pixie cups and actual MP4 exports are later phases.</p>
+        <p className="scientific">PHASE 1B · Propagating, irreversible fracture network; beveled 3D areole edges and age-conditioned cortex microtexture. A species-inspired growth approximation, not calibrated ecology. Photorealism still needs reference-photo testing. Foliose sheets, pixie cups and MP4 are later phases.</p>
       </div>
     </section>
   </main>;

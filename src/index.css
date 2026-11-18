@@ -44,3 +44,9 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}.lichen-app{max-wi
 @media(min-width:1050px){.viewport{height:min(62dvh,690px)}.panel{padding-top:30px}}
 @media(max-width:420px){.topbar{height:56px;padding:9px 11px}.brand strong{font-size:1rem}.brand strong em{font-size:.5rem}.panel{padding:18px 15px}.viewport{height:42dvh}.tabs button{padding:13px 11px;font-size:.65rem}.palette-grid{gap:6px}.palette{padding:7px}}
 @media(prefers-reduced-motion:reduce){.fill{transition:none}}
+
+.diagnostic-toggle{display:flex;gap:12px;align-items:center;min-height:54px;background:#25342b;border:1px solid #5a705c;border-radius:12px;padding:10px 14px;margin-bottom:22px;cursor:pointer}
+.diagnostic-toggle input{accent-color:#d8f18e;width:20px;height:20px;flex-shrink:0}
+.diagnostic-toggle span{display:flex;flex-direction:column;gap:2px}
+.diagnostic-toggle strong{font-size:.82rem;color:#e3efd6}
+.diagnostic-toggle small{font-size:.69rem;color:#b7c9b3}
