@@ -65,3 +65,16 @@ Upgrade the foliose solver from bounded spring relaxation to adaptive mesh edge 
 - **Known limitations:** coarse vertex contact misses edge crossings, fully accurate self-collision and adaptive new triangles are not present, true cortex/medulla layering and realistic all-scale photography still need work. Avoid declaring macro photorealism from code alone.
 
 **Verification gate:** check GitHub branch/file state, then run `npm run test:engines`, `npm run lint`, `npm run build` and load Google AI Studio preview. Real Safari and color/lighting macro QA not yet run. No Netlify trigger was requested.
+
+## 2026-11-18 — Phase 2C: surface contact and strain-linked folds
+
+- **Repo source:** `src/engine/leafContact.ts` introduces a standalone, numerically pure, testable 2.5D vertex-to-triangle contact solver. It keeps bounded contact corrections, bins lower triangles by XY and computes interpolated heights using barycentric coordinates for the higher-priority sheet's vertices. Geometry ordering is deterministic by lobe ID. Deliberately does not claim self-collision or a full cloth simulation.
+- **Existing engine:** `src/engine/foliose.ts` invokes the new contact solver every four 0.2-year steps, retaining biological clock consistency while limiting CPU cost. Mesh shell/underside construction and existing rock nonpenetration are unchanged.
+- **Persistent folding:** Replaced isolated random ±Z sign with a smooth rest-space imperfection field; its preferred curvature is amplified by actually accumulated metric compression. Fold complexity adjusts spatial scale rather than changing only color.
+- **UI:** `src/App.tsx` wires the new fold-complexity control; other sliders, planting, three growth visibility modes, presets and export still work in source.
+- **Diagnostics:** `tests/leafContact.test.ts` uses synthetic overlapping triangles and checks order-invariant deterministic separating and zero false positives for distant sheets. `tests/foliose-2c.test.ts` verifies repeatable stress/membrane geometry and changing fold complexity.
+- **Test command:** `npm run test:engines` (includes all existing and new biology tests), `npm run lint`, `npm run build`.
+- **Validation note:** these files must still be run in AI Studio or a development environment; source inspection is not a browser test. User's Netlify budget is protected; no direct deployment is requested.
+
+### Phase 2D
+Add adaptive edge tessellation and more physical cortex/margin geometry, ideally after recording macro screenshots from Google AI Studio. Then begin the **SCYPHI** engine for basal squamules and real hollow pixie cups.

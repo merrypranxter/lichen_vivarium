@@ -65,3 +65,14 @@ No Netlify release was initiated. Preserve AI Studio Vite configuration.
 - **No automatic deployment.** Do not use Netlify for development. Google AI Studio Vite/HMR settings are unchanged.
 
 This is a controlled, reversible improvement toward macro realism. **Remaining:** full surface-to-surface collision, species-calibrated morphogenesis, apothecia/basal anatomy validation, photo comparisons, and long-video export.
+
+## Phase 2C — physically controlled folded margins and surface-aware overlap
+
+- Replaces the sparse **vertex–vertex** proximity check with a **vertex–triangle** projected contact pass in `src/engine/leafContact.ts`. It spatially hashes a coarse triangulation of older/lower lobes, interpolates height at overlapping vertices, and separates contact in a deterministic ID-based layering order.
+- **Safety / scope:** This is bounded 2.5D contact, not exact continuous 3D shell collision or same-lobe self-collision. Contact is evaluated every 4 fixed biological substeps for phone-friendliness. New surfaces are still physically represented by the persistent upper/lower foliose shell.
+- Replaces unsmoothed per-vertex random-sign ridges with a **smoothed material-space curvature preference**, whose amplitude is driven by stored rest-metric compression. A new **Fold complexity** slider changes its spatial scale in the existing FOLIOSE controls.
+- Existing rock substrate projection, permanent crust areole cracking, lobe margin-row deposition, drying curl, 3D pale hapters, palettes, microscope/grayscale controls, and PNG remain intact.
+- Added `npm run test:contact` and `npm run test:foliose-2c` to the composite `npm run test:engines` suite.
+- Real-device visual tests are still necessary. Neither macro-photographic accuracy nor flawless collision is claimed. Next improvement: real mesh-adaptive tip subdivision, interlayer collision beyond 2.5D, species-conditioned cortex/margins and hollow `Cladonia` scyphi.
+
+No Netlify build was requested or triggered by the assistant. Preserve `vite.config.ts` AI Studio HMR settings.

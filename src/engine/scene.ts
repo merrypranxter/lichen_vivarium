@@ -272,6 +272,7 @@ export class LichenView{
   }
   setRuffle(value:number){this.foliage.setRuffle(value);}
   setCurl(value:number){this.foliage.setCurl(value);}
+  setFoldComplexity(value:number){this.foliage.setFoldComplexity(value);}
   plantFoliose(x:number,y:number){return this.foliage.plant(x,y);}
   advanceFoliose(dtYears:number){this.foliage.step(dtYears,this.world.rainfall);}
   folioseStats(){return this.foliage.metrics();}

@@ -11,8 +11,10 @@
     "lint": "tsc --noEmit",
     "test:biology": "tsx tests/growth.test.ts",
     "test:foliose": "tsx tests/foliose.test.ts",
-    "test:engines": "npm run test:biology && npm run test:foliose && npm run test:foliose-2b",
-    "test:foliose-2b": "tsx tests/foliose-2b.test.ts"
+    "test:engines": "npm run test:biology && npm run test:foliose && npm run test:foliose-2b && npm run test:contact && npm run test:foliose-2c",
+    "test:foliose-2b": "tsx tests/foliose-2b.test.ts",
+    "test:contact": "tsx tests/leafContact.test.ts",
+    "test:foliose-2c": "tsx tests/foliose-2c.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

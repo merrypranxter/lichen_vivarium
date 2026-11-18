@@ -10,7 +10,8 @@
  * growth law. No universal real-world cell velocities are claimed.
  */
 import * as THREE from 'three';
-import {fbm, hash, onRock, stoneZ, type CrustWorld} from './biology';
+import {separateFolioseSheets} from './leafContact';
+import {fbm, hash, noise, onRock, stoneZ, type CrustWorld} from './biology';
 import type {Pigment} from './scene';
 
 const ROWS = 15;
@@ -168,6 +169,8 @@ export class FolioseGarden {
   year=0;
   ruffle=.83;
   curl=.66;
+  foldComplexity=1;
+  private contactTick=0;
   private pigment:Pigment='natural';
   private colonyTotal=0;
   private material:THREE.MeshStandardMaterial;
@@ -243,6 +246,7 @@ export class FolioseGarden {
   setPigment(mode:Pigment){this.pigment=mode;this.update();}
   setRuffle(v:number){this.ruffle=clamp(v,0,1.6);}
   setCurl(v:number){this.curl=clamp(v,0,1.5);}
+  setFoldComplexity(v:number){this.foldComplexity=clamp(v,0,2);}
   setCortex(v:number){this.cortex=clamp(v,0,2);this.material.bumpScale=.024*this.cortex;}
   setHaptersVisible(visible:boolean){this.hapterMesh.visible=visible;}
   get contactCount(){return this.contacts;}
@@ -316,9 +320,11 @@ export class FolioseGarden {
           px[k+1]=clamp(px[k+1],lobe.rest[k+1]-.32,lobe.rest[k+1]+.32);
         }
       }
-      // Stress is causally derived from rest-metric surplus and the actual
-      // local deformed distance. It amplifies seeded irregularities into
-      // physically persistent tertiary folds, not a time-driven sine wave.
+      // Compression history is the driver for tertiary folds. Rather than
+      // independently flipping random vertices above/below the sheet,
+      // use a smooth REST-SPACE imperfection field as preferred curvature,
+      // then relax z toward that bending state with a bounded correction.
+      // Biology -> excess metric -> compression -> secondary curvature.
       if(this.ruffle>0){
         for(let r=2;r<lobe.count;r++)for(let c=1;c<COLS-1;c++){
           const a=offset(r,c-1),b=offset(r,c+1),k=offset(r,c);
@@ -330,9 +336,15 @@ export class FolioseGarden {
           const compression=clamp((preferred-span)/Math.max(preferred,.0001));
           const q=r*COLS+c;
           lobe.strain[q]+=.12*(compression-lobe.strain[q]);
-          const variation=hash(r,c,lobe.id+this.world.seed+887);
-          const ridgeSign=variation>.5?1:-1;
-          px[k+2]+=.024*this.ruffle*lobe.strain[q]*ridgeSign*Math.pow(t,2);
+          const scale=.23+.43*this.foldComplexity;
+          const profile=noise(c*scale+lobe.id*1.3,
+            r*(.13+.07*this.foldComplexity),this.world.seed+887);
+          const ridge=(profile-.5)*2;
+          const neighborMean=(px[a+2]+px[b+2])*.5;
+          const desired=neighborMean+this.ruffle*1.16*lobe.strain[q]
+            *ridge*Math.pow(t,1.8);
+          const correction=clamp((desired-px[k+2])*.17,-.014,.014);
+          px[k+2]+=correction;
           const substrate=groundStep[r*COLS+c]+.062;
           px[k+2]=clamp(px[k+2],substrate,substrate+.75);
         }
@@ -345,7 +357,9 @@ export class FolioseGarden {
         if(px[k+2]<floor)px[k+2]=floor;
       }
     }
-    this.resolveContacts();
+    // Surface-vs-vertex contact is more expensive than simple point checks.
+    // Evaluate at a biological cadence of ~0.8 simulated years on mobile.
+    if(++this.contactTick%4===0||this.year>=100)this.resolveContacts();
   }
   /**
    * Bounded local vertex contact / 2.5D shell separation.
@@ -354,42 +368,17 @@ export class FolioseGarden {
    * The higher tissue yields upward, preserving the lower sheet.
    */
   private resolveContacts():void {
-    type ContactPoint={lobe:Lobe; r:number; c:number; x:number; y:number; z:number};
-    const map=new Map<string,ContactPoint[]>();
-    const cell=.19;
-    this.contacts=0;
-    for(const lobe of this.lobes){
-      if(this.year<=lobe.birth)continue;
-      for(let r=2;r<lobe.count;r+=2)for(let c=0;c<COLS;c+=2){
-        const k=offset(r,c),x=lobe.pos[k],y=lobe.pos[k+1],z=lobe.pos[k+2];
-        const gx=Math.floor(x/cell),gy=Math.floor(y/cell);
-        for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
-          const around=map.get((gx+dx)+','+(gy+dy));
-          if(!around)continue;
-          for(const p of around){
-            if(p.lobe===lobe)continue;
-            if(Math.abs(x-p.x)>.15||Math.abs(y-p.y)>.15)continue;
-            if(Math.hypot(x-p.x,y-p.y)>.15)continue;
-            const separation=z-p.z;
-            if(Math.abs(separation)>=.09)continue;
-            // Stable identity ordering breaks perfectly coincident ties.
-            const thisTop=separation>.00001 || (Math.abs(separation)<.00001 && lobe.id>p.lobe.id);
-            const upper=thisTop?lobe:p.lobe;
-            const upperIndex=thisTop?k:offset(p.r,p.c);
-            const lowerZ=thisTop?p.z:z;
-            const correction=.09-Math.abs(separation);
-            const maxAbove=stoneZ(upper.pos[upperIndex],upper.pos[upperIndex+1],this.world.seed)+.78;
-            upper.pos[upperIndex+2]=Math.min(maxAbove,Math.max(upper.pos[upperIndex+2],lowerZ+.09)+correction*.15);
-            upper.contactZ[upperIndex/3]=Math.max(upper.contactZ[upperIndex/3],correction);
-            this.contacts++;
-          }
-        }
-        const key=gx+','+gy;
-        let bucket=map.get(key);
-        if(!bucket){bucket=[];map.set(key,bucket);}
-        bucket.push({lobe,r,c,x,y,z});
-      }
-    }
+    // Contact against coarse triangles—not just sparse sample vertices.
+    // The lower-id lobe is treated as the lower layer for deterministic
+    // stacking; this is a 2.5D contact approximation, not full cloth physics.
+    const sheets=this.lobes
+      .filter(lobe=>this.year>lobe.birth&&lobe.count>=3)
+      .map(lobe=>({
+        id:lobe.id,rows:lobe.count,cols:COLS,
+        pos:lobe.pos,contactZ:lobe.contactZ
+      }));
+    const result=separateFolioseSheets(sheets);
+    this.contacts=result.corrections;
   }
   private color(lobe:Lobe,r:number,c:number,underside:boolean):THREE.Color {
     const u=r/(ROWS-1),v=c/(COLS-1);

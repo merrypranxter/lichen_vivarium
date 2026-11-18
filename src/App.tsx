@@ -28,6 +28,7 @@ export default function App(){
   const [growthView,setGrowthView]=useState<GrowthView>('mixed');
   const [plantMode,setPlantMode]=useState<'crust'|'foliose'>('foliose');
   const [ruffle,setRuffle]=useState(.83);
+  const [foldComplexity,setFoldComplexity]=useState(1);
   const [curl,setCurl]=useState(.66);
   const [cortex,setCortex]=useState(1);
   const [showHapters,setShowHapters]=useState(true);
@@ -60,6 +61,7 @@ export default function App(){
       graphics.setPigment(pigment);
       graphics.setGrowthView(growthView);
       graphics.setRuffle(ruffle);graphics.setCurl(curl);
+      graphics.setFoldComplexity(foldComplexity);
       graphics.foliage.setCortex(cortex);
       graphics.foliage.setHaptersVisible(showHapters);
       graphics.setOrbit(orbit);graphics.setLight(light);
@@ -124,6 +126,7 @@ export default function App(){
   const changeOrbit=(v:number)=>{setOrbit(v);view.current?.setOrbit(v);};
   const changeView=(v:GrowthView)=>{setGrowthView(v);view.current?.setGrowthView(v);};
   const changeRuffle=(v:number)=>{setRuffle(v);view.current?.setRuffle(v);};
+  const changeFoldComplexity=(v:number)=>{setFoldComplexity(v);view.current?.setFoldComplexity(v);};
   const changeCurl=(v:number)=>{setCurl(v);view.current?.setCurl(v);};
   const changeCortex=(v:number)=>{setCortex(v);view.current?.foliage.setCortex(v);};
   const changeHapters=(v:boolean)=>{setShowHapters(v);view.current?.foliage.setHaptersVisible(v);};
@@ -201,6 +204,8 @@ export default function App(){
           </div>
           <label className="control"><span>Growing-edge surplus (ruffles)</span><b>{Math.round(ruffle*100)}%</b>
             <input type="range" min="0" max="1.6" step=".02" value={ruffle} onChange={e=>changeRuffle(Number(e.target.value))}/></label>
+          <label className="control"><span>Fold complexity</span><b>{foldComplexity.toFixed(1)}×</b>
+            <input type="range" min="0" max="2" step=".1" value={foldComplexity} onChange={e=>changeFoldComplexity(Number(e.target.value))}/></label>
           <label className="control"><span>Desiccation-driven curling</span><b>{Math.round(curl*100)}%</b>
             <input type="range" min="0" max="1.5" step=".02" value={curl} onChange={e=>changeCurl(Number(e.target.value))}/></label>
           <label className="control"><span>Upper cortex microrelief</span><b>{Math.round(cortex*100)}%</b>
@@ -214,7 +219,7 @@ export default function App(){
             <span><b>{hapters}</b> holdfasts</span>
             <span><b>{contacts}</b> contact corrections</span>
           </div>
-          <p className="annotation">Living tissue now uses a coarse spatial-hash contact pass, compression-driven tertiary corrugation, a pale lower cortex and sparse attachment structures. Contact is an approximation—not full continuous triangle collision.</p>
+          <p className="annotation">Fold complexity changes the spatial scale of real strain-amplified corrugations. The new local vertex–triangle contact solver reduces holes in overlapping foliose sheets. It is still an efficient 2.5D approximation, not continuous cloth collision.</p>
         </>}
         {tab==='material'&&<>
           <div className="panel-heading"><h2>Cortex pigmentation</h2><span>REAL GEOMETRY · ALIEN PALETTES</span></div>
@@ -241,7 +246,7 @@ export default function App(){
           <button className="outline" onClick={()=>{changeLight(2.2);changeOrbit(0);changeZoom(1);changeGrayscale(false);}}>RESET CAMERA + LIGHT</button>
         </>}
         <div className="notice">{message}</div>
-        <p className="scientific">PHASE 2B · Coarse 3D foliose contact, stress-amplified fine folds, persistent cortex texture, pale underside and short hapter attachments. Growth is still an artist's bio-inspired structural model, not a validated lichen growth prediction. Full triangle collision, real microscopy matching, pixie cups and offline MP4 remain upcoming.</p>
+        <p className="scientific">PHASE 2C · Vertex–triangle projected surface contact, smoother strain-generated folds and adjustable fold scales. Foliose and crust growth remain persistent and seed-controlled. Not full 3D self-collision or calibrated macrophotography; hollow Cladonia scyphi and offline MP4 remain future milestones.</p>
       </div>
     </section>
   </main>;
