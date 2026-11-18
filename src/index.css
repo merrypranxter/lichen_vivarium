@@ -1,1 +1,29 @@
 @import "tailwindcss";
+
+:root { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #f0f6eb; background: #101714; font-synthesis: none; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 300px; background: #101714; }
+button, input, select { font: inherit; }
+.app { min-height: 100dvh; }
+.hero { position: sticky; top: 0; z-index: 2; min-height: min(39dvh, 390px); padding: clamp(16px, 4vw, 28px); display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; background: radial-gradient(ellipse at 75% 30%, #25392e 0, #101c18 51%, #07110e 100%); border-bottom: 1px solid #3c5e47; }
+.hero::after { content: ""; pointer-events: none; position: absolute; width: 75vw; aspect-ratio: 1; right: -26vw; top: -34vw; border: 1px solid #43654970; border-radius: 50%; box-shadow: 0 0 0 44px #4463440d, 0 0 0 90px #dfff8810; }
+.eyebrow, .section-label { font-size: 0.72rem; letter-spacing: .19em; font-weight: 750; color: #c0ed92; }
+.hero-body { position: relative; z-index: 1; }
+.specimen-mark { font-size: 2rem; color: #ef74f9; line-height: 1.1; }
+h1 { font-size: clamp(2.6rem, 9vw, 5.5rem); line-height: 1; margin: .35rem 0 0; letter-spacing: -.065em; color: #efffb0; }
+.tagline { margin: .65rem 0 0; font-size: clamp(1rem, 2.5vw, 1.35rem); color: #e0cbe6; }
+.hero-note { display: flex; align-items: center; gap: .5rem; position: relative; z-index: 1; color: #b7c8bc; font-size: .78rem; }
+.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #edcc79; }
+.mission, .roadmap { max-width: 1100px; padding: 26px 20px; margin: 0 auto; }
+h2 { font-size: clamp(1.35rem, 3.5vw, 2rem); line-height: 1.2; margin: .65rem 0 1rem; }
+.mission p { max-width: 75ch; line-height: 1.65; color: #cedacd; }
+.mission .quiet { font-size: .88rem; color: #aeb7aa; }
+code { color: #e2bfec; overflow-wrap: anywhere; }
+.phase-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin-top: 15px; }
+.phase { background: #19221e; border: 1px solid #385043; border-radius: 14px; padding: 17px; }
+.phase-number { color: #d38bff; font-size: .8rem; font-weight: 800; }
+.phase h3 { margin: 12px 0 5px; color: #f3fba7; font-size: 1.1rem; }
+.phase p { margin: 0; color: #bac8bd; font-size: .9rem; line-height: 1.45; }
+footer { color: #94aaa0; text-align: center; padding: 26px 16px 35px; font-size: .7rem; letter-spacing: .08em; }
+@media (max-width: 520px) { .hero { min-height: 34dvh; } .phase-grid { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
