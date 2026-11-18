@@ -29,6 +29,8 @@ export default function App(){
   const [plantMode,setPlantMode]=useState<'crust'|'foliose'>('foliose');
   const [ruffle,setRuffle]=useState(.83);
   const [foldComplexity,setFoldComplexity]=useState(1);
+  const [marginDetail,setMarginDetail]=useState(.8);
+  const [marginTriangles,setMarginTriangles]=useState(0);
   const [curl,setCurl]=useState(.66);
   const [cortex,setCortex]=useState(1);
   const [showHapters,setShowHapters]=useState(true);
@@ -62,6 +64,7 @@ export default function App(){
       graphics.setGrowthView(growthView);
       graphics.setRuffle(ruffle);graphics.setCurl(curl);
       graphics.setFoldComplexity(foldComplexity);
+      graphics.setMarginDetail(marginDetail);
       graphics.foliage.setCortex(cortex);
       graphics.foliage.setHaptersVisible(showHapters);
       graphics.setOrbit(orbit);graphics.setLight(light);
@@ -103,6 +106,7 @@ export default function App(){
           setCoverage(Math.round(simulation.occupied/(GRID*GRID)*100));
           setContacts(graphics.foliage.contactCount);
           setHapters(graphics.foliage.attachmentCount);
+          setMarginTriangles(graphics.foliage.marginTriangles);
           ui=now;
         }
         graphics.render();
@@ -127,6 +131,11 @@ export default function App(){
   const changeView=(v:GrowthView)=>{setGrowthView(v);view.current?.setGrowthView(v);};
   const changeRuffle=(v:number)=>{setRuffle(v);view.current?.setRuffle(v);};
   const changeFoldComplexity=(v:number)=>{setFoldComplexity(v);view.current?.setFoldComplexity(v);};
+  const changeMarginDetail=(v:number)=>{
+    setMarginDetail(v);
+    view.current?.setMarginDetail(v);
+    setMarginTriangles(view.current?.foliage.marginTriangles ?? 0);
+  };
   const changeCurl=(v:number)=>{setCurl(v);view.current?.setCurl(v);};
   const changeCortex=(v:number)=>{setCortex(v);view.current?.foliage.setCortex(v);};
   const changeHapters=(v:boolean)=>{setShowHapters(v);view.current?.foliage.setHaptersVisible(v);};
@@ -150,7 +159,7 @@ export default function App(){
       <header className="topbar">
         <div className="brand">
           <span className="eyebrow">A LIVING MACROSCOPIC WORLD</span>
-          <strong>LICHENARIUM <em>02B / LOBE</em></strong>
+          <strong>LICHENARIUM <em>02D / LOBE</em></strong>
         </div>
         <button className="small-button" onClick={savePNG} title="Save current canvas PNG">↓ PNG</button>
       </header>
@@ -206,6 +215,8 @@ export default function App(){
             <input type="range" min="0" max="1.6" step=".02" value={ruffle} onChange={e=>changeRuffle(Number(e.target.value))}/></label>
           <label className="control"><span>Fold complexity</span><b>{foldComplexity.toFixed(1)}×</b>
             <input type="range" min="0" max="2" step=".1" value={foldComplexity} onChange={e=>changeFoldComplexity(Number(e.target.value))}/></label>
+          <label className="control"><span>Adaptive margin detail</span><b>{Math.round(marginDetail*100)}%</b>
+            <input type="range" min="0" max="2" step=".1" value={marginDetail} onChange={e=>changeMarginDetail(Number(e.target.value))}/></label>
           <label className="control"><span>Desiccation-driven curling</span><b>{Math.round(curl*100)}%</b>
             <input type="range" min="0" max="1.5" step=".02" value={curl} onChange={e=>changeCurl(Number(e.target.value))}/></label>
           <label className="control"><span>Upper cortex microrelief</span><b>{Math.round(cortex*100)}%</b>
@@ -218,8 +229,9 @@ export default function App(){
             <span><b>{lobeCount}</b> living lobes</span>
             <span><b>{hapters}</b> holdfasts</span>
             <span><b>{contacts}</b> contact corrections</span>
+            <span><b>{marginTriangles.toLocaleString()}</b> adaptive margin triangles</span>
           </div>
-          <p className="annotation">Fold complexity changes the spatial scale of real strain-amplified corrugations. The new local vertex–triangle contact solver reduces holes in overlapping foliose sheets. It is still an efficient 2.5D approximation, not continuous cloth collision.</p>
+          <p className="annotation">The NEW adaptive 3D margin adds living edge triangles along the whole free perimeter: side flanks and tips. Local strain and curvature determine tessellation, while tissue age and drying shape the rolled lip. Fold complexity still controls persistent compression-driven buckling. Mobile: reduce edge detail if preview gets slow.</p>
         </>}
         {tab==='material'&&<>
           <div className="panel-heading"><h2>Cortex pigmentation</h2><span>REAL GEOMETRY · ALIEN PALETTES</span></div>
@@ -246,7 +258,7 @@ export default function App(){
           <button className="outline" onClick={()=>{changeLight(2.2);changeOrbit(0);changeZoom(1);changeGrayscale(false);}}>RESET CAMERA + LIGHT</button>
         </>}
         <div className="notice">{message}</div>
-        <p className="scientific">PHASE 2C · Vertex–triangle projected surface contact, smoother strain-generated folds and adjustable fold scales. Foliose and crust growth remain persistent and seed-controlled. Not full 3D self-collision or calibrated macrophotography; hollow Cladonia scyphi and offline MP4 remain future milestones.</p>
+        <p className="scientific">PHASE 2D · A separately tessellated, double-sided 3D foliose perimeter now grows from each living lobe. Adaptive segments respond to local bend/strain and physical tips gain a thin rolled edge. Both growth engines and seed histories remain intact. This is not calibrated photorealism or full cloth collision. Hollow Cladonia scyphi and true MP4 remain future stages.</p>
       </div>
     </section>
   </main>;

@@ -11,7 +11,8 @@
  */
 import * as THREE from 'three';
 import {separateFolioseSheets} from './leafContact';
-import {fbm, hash, noise, onRock, stoneZ, type CrustWorld} from './biology';
+import {buildLivingMargin} from './lobeMargin';
+import {EXTENT, fbm, hash, noise, onRock, stoneZ, type CrustWorld} from './biology';
 import type {Pigment} from './scene';
 
 const ROWS = 15;
@@ -39,6 +40,10 @@ interface Lobe {
   positions: Float32Array; // upper+lower surfaces
   colors: Float32Array;
   mesh: THREE.Mesh;
+  marginGeometry: THREE.BufferGeometry;
+  marginMesh: THREE.Mesh;
+  marginTriangles: number;
+  marginReach: number;
 }
 const offset = (r: number, c: number) => (r * COLS + c) * 3;
 const get = (positions: Float32Array, r: number, c: number, axis: number) =>
@@ -128,11 +133,17 @@ function createLobe(
   geometry.setAttribute('uv',new THREE.BufferAttribute(uv,2));
   geometry.setIndex(indicesForRows(2));
   const mesh=new THREE.Mesh(geometry,material);
+  const marginGeometry=new THREE.BufferGeometry();
+  const marginMesh=new THREE.Mesh(marginGeometry,material);
+  marginMesh.castShadow=true;marginMesh.receiveShadow=true;
+  marginMesh.frustumCulled=false;
+  marginMesh.visible=false;
+  marginMesh.name='Adaptive living ruffled perimeter '+id;
   mesh.castShadow=true;mesh.receiveShadow=true;
   mesh.frustumCulled=false; // small dynamic shells; skip stale bounding sphere bugs
   mesh.name='Xanthoria-like growing foliose lobe '+id;
   return {id,colony,birth,length,width,count:2,rest,pos,previous,baseSpan,strain,contactZ,terrain,pigmentNoise,
-    geometry,positions,colors,mesh};
+    geometry,positions,colors,mesh,marginGeometry,marginMesh,marginTriangles:0,marginReach:0};
 }
 
 function solveSpring(
@@ -178,8 +189,21 @@ export class FolioseGarden {
   private hapterCount=0;
   private contacts=0;
   private cortex=1;
+  private marginDetail=1;
+  private readonly rockAtlas:Float32Array;
+  private edgeTriangleCount=0;
+  private edgeReach=0;
+  private readonly rockResolution=144;
   constructor(world:CrustWorld) {
     this.world=world;
+    // One-time rock-height atlas for the high-frequency adaptive margin.
+    // Sample bilinearly rather than evaluating multi-octave geology dozens
+    // of times per newly inserted vertex on every animation refresh.
+    const n=this.rockResolution;
+    this.rockAtlas=new Float32Array((n+1)*(n+1));
+    for(let j=0;j<=n;j++)for(let i=0;i<=n;i++){
+      this.rockAtlas[j*(n+1)+i]=stoneZ((i/n-.5)*EXTENT,(j/n-.5)*EXTENT,world.seed);
+    }
     this.material=new THREE.MeshStandardMaterial({
       vertexColors:true,side:THREE.DoubleSide,roughness:.88,metalness:0,
       flatShading:false,
@@ -216,7 +240,8 @@ export class FolioseGarden {
       const birth=this.year+(colony<3?colony*5:0)+hash(id,colony,this.world.seed+73)*7;
       const lobe=createLobe(this.world,colony,id,x,y,
         angle,length,width,birth,this.material);
-      this.lobes.push(lobe);this.group.add(lobe.mesh);
+      this.lobes.push(lobe);
+      this.group.add(lobe.mesh,lobe.marginMesh);
     }
     this.update();
     return true;
@@ -247,6 +272,9 @@ export class FolioseGarden {
   setRuffle(v:number){this.ruffle=clamp(v,0,1.6);}
   setCurl(v:number){this.curl=clamp(v,0,1.5);}
   setFoldComplexity(v:number){this.foldComplexity=clamp(v,0,2);}
+  setMarginDetail(v:number){this.marginDetail=clamp(v,0,2);this.update();}
+  get marginTriangles(){return this.edgeTriangleCount;}
+  get maximumMarginReach(){return this.edgeReach;}
   setCortex(v:number){this.cortex=clamp(v,0,2);this.material.bumpScale=.024*this.cortex;}
   setHaptersVisible(visible:boolean){this.hapterMesh.visible=visible;}
   get contactCount(){return this.contacts;}
@@ -402,7 +430,16 @@ export class FolioseGarden {
     }
     return new THREE.Color().setHSL(h,clamp(s),clamp(l+.03*veins));
   }
+  /** Stable bilinear interpolation of the cached 145×145 rock relief. */
+  private cachedRock(x:number,y:number):number{
+    const n=this.rockResolution,gx=clamp((x/EXTENT+.5)*n,0,n),gy=clamp((y/EXTENT+.5)*n,0,n);
+    const i=Math.min(n-1,Math.floor(gx)),j=Math.min(n-1,Math.floor(gy));
+    const a=gx-i,b=gy-j,stride=n+1,k=j*stride+i;
+    return (1-b)*((1-a)*this.rockAtlas[k]+a*this.rockAtlas[k+1])
+      +b*((1-a)*this.rockAtlas[k+stride]+a*this.rockAtlas[k+stride+1]);
+  }
   update():void{
+    this.edgeTriangleCount=0;this.edgeReach=0;
     for(const lobe of this.lobes){
       const dst=lobe.positions,colors=lobe.colors;
       const age=Math.max(0,this.year-lobe.birth);
@@ -426,6 +463,37 @@ export class FolioseGarden {
       (geometry.attributes.color as THREE.BufferAttribute).needsUpdate=true;
       geometry.computeVertexNormals();
       (geometry.attributes.normal as THREE.BufferAttribute).needsUpdate=true;
+      // Adaptive *physical* perimeter: left flank + tip + right flank.
+      // The entire original shell and its persistent rest states remain.
+      const maturity=clamp((age-4)/34);
+      const border=buildLivingMargin({
+        positions:lobe.pos,strain:lobe.strain,rows:lobe.count,cols:COLS,
+        seed:this.world.seed,lobeId:lobe.id,maturity,
+        detail:this.marginDetail,dryness:1-this.world.rainfall,
+        ground:(x,y)=>this.cachedRock(x,y)
+      });
+      const margin=new THREE.BufferGeometry();
+      if(border.triangles>0){
+        margin.setAttribute('position',new THREE.BufferAttribute(border.positions,3));
+        margin.setAttribute('uv',new THREE.BufferAttribute(border.uvs,2));
+        const shades=new Float32Array(border.sources.length*3);
+        for(let i=0;i<border.sources.length;i++){
+          const q=border.sources[i],r=Math.floor(q/COLS),c=q%COLS;
+          const pigment=this.color(lobe,r,c,i%4>=2);
+          shades[i*3]=pigment.r;shades[i*3+1]=pigment.g;shades[i*3+2]=pigment.b;
+        }
+        margin.setAttribute('color',new THREE.BufferAttribute(shades,3));
+        margin.setIndex(new THREE.BufferAttribute(border.indices,1));
+        margin.computeVertexNormals();
+      }
+      lobe.marginGeometry.dispose();
+      lobe.marginGeometry=margin;
+      lobe.marginMesh.geometry=margin;
+      lobe.marginMesh.visible=age>4&&border.triangles>0;
+      lobe.marginTriangles=border.triangles;
+      lobe.marginReach=border.maxExtension;
+      this.edgeTriangleCount+=border.triangles;
+      this.edgeReach=Math.max(this.edgeReach,border.maxExtension);
     }
     this.updateHapters();
   }
@@ -471,7 +539,10 @@ export class FolioseGarden {
       contacts:this.contacts,hapters:this.hapterCount};
   }
   dispose():void{
-    for(const lobe of this.lobes)lobe.geometry.dispose();
+    for(const lobe of this.lobes){
+      lobe.geometry.dispose();
+      lobe.marginGeometry.dispose();
+    }
     this.material.bumpMap?.dispose();
     this.material.dispose();
     this.hapterMesh.geometry.dispose();

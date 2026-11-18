@@ -78,3 +78,17 @@ Upgrade the foliose solver from bounded spring relaxation to adaptive mesh edge 
 
 ### Phase 2D
 Add adaptive edge tessellation and more physical cortex/margin geometry, ideally after recording macro screenshots from Google AI Studio. Then begin the **SCYPHI** engine for basal squamules and real hollow pixie cups.
+
+## 2026-11-18 — Phase 2D: Adaptive margin tessellation and rolled edges
+
+Source verification and local pure-module checks completed. Full browser rendering and TypeScript project build pending.
+
+- **New pure module `src/engine/lobeMargin.ts`**: constructs a real four-vertex-thick triangulated strip for each adaptive point around the free left flank, advancing tip and free right flank. The local curvature and accumulated strain determine subdivisions (bounded 1–7 per original edge interval); maturity/seeded spatial irregularity/stress/hydration determine outward extension and uplift. Thin double-surface anatomy with exterior roll and end caps; approximate substrate clearance.
+- **`src/engine/foliose.ts`**: each existing growing lobe retains its persistent inner physical shell and gains a separate dynamic margin `BufferGeometry`/mesh with same pigment, pale underside, PBR material, shadowing and normal calculation. Old margin buffers disposed on regeneration. The original 2.5D overlap contact pass, hapter attachments and cortex microtexture remain.
+- One-time 145x145 cached rock relief sampled bilinearly for margin vertices to avoid repeated full stone noise during frequent 3D geometry updates. Phone budget still requires profiling; dynamic geometry regeneration has a nonzero GPU allocation cost.
+- **`src/engine/scene.ts` + `src/App.tsx`**: wired Adaptive Margin Detail slider (0–200%) and adaptive triangle count. Mobile pinned art layout and all existing controls preserved.
+- **`tests/lobeMargin.test.ts`**: deterministic geometry, source mapping, integer indices, zero degenerate state before maturity, substrate clearance, actual mesh refinement with higher detail or strain. Added `npm run test:margins` to package scripts and engine test suite.
+- **Verification:** a standalone local Node test of the independent math module passed after TypeScript compilation. This is not evidence that the full Three.js scene builds or runs on iPhone. GitHub push verified separately. No direct Netlify actions taken.
+
+### Next: Phase 3 — SCYPHI
+Build Cladonia-inspired basal squamules and **genuinely hollow, flared pixie-cup stalks**, with anchored branching growth and actual rim/fracture geometry; avoid merely shading cones as cups. These should coexist with both existing growth engines and have their own biological age, substrate suitability and moisture response.

@@ -76,3 +76,17 @@ This is a controlled, reversible improvement toward macro realism. **Remaining:*
 - Real-device visual tests are still necessary. Neither macro-photographic accuracy nor flawless collision is claimed. Next improvement: real mesh-adaptive tip subdivision, interlayer collision beyond 2.5D, species-conditioned cortex/margins and hollow `Cladonia` scyphi.
 
 No Netlify build was requested or triggered by the assistant. Preserve `vite.config.ts` AI Studio HMR settings.
+
+## Phase 2D — Adaptive living foliose margins
+
+The foliage now grows a **real upper-and-lower 3D free-perimeter mesh** on each lobe. The new `src/engine/lobeMargin.ts` is an independent deterministic geometry generator with no Three.js or GPU dependency. It follows both side flanks and the growing tip, and adds extra triangles **according to local curvature and accumulated tissue compression**.
+
+Each margin has (1) an attached edge row, (2) outward living tip material, (3) a pale underside, and (4) a thin exposed lip surface. Maturity, metric strain, local geometric bend, drying and seed-stable irregularity affect the edge's extension and curl; changing settings **changes mesh topology and actual silhouette**, not post-processing color.
+
+New **Adaptive Margin Detail** slider in the existing FOLIOSE tab (default 80%), and a live adaptive-triangle count diagnostic. Set a lower value on slower iPhones. The rest of the permanent foliose shell still has its separate fixed resolution; the adaptive addition applies to the free boundary.
+
+Performance: a one-time 145x145 rock-height cache provides bilinear substrate clearance to edge vertices, avoiding repeated multi-octave geological noise on every refresh. Margins have deterministic finite vertex/triangle budgets, and every regenerated `THREE.BufferGeometry` is disposed before replacement.
+
+**Validation:** the pure `lobeMargin.ts` was compiled with a local TypeScript compiler and exercised with a standalone Node geometry test (deterministic arrays, valid triangle indices, rock-floor clearance, detail/strain dependent mesh counts). Full project build and phone preview are still pending. Run `npm run test:margins`, `npm run test:engines`, `npm run lint`, `npm run build` in AI Studio. No browser/device frame-rate measurements claimed.
+
+**Not included yet:** full 3D leaf self-collision, species-calibrated macrophotography, real vein/medulla anatomy, SCYPHI pixie cups, MP4 encoder.
