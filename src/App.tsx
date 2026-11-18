@@ -29,6 +29,10 @@ export default function App(){
   const [plantMode,setPlantMode]=useState<'crust'|'foliose'>('foliose');
   const [ruffle,setRuffle]=useState(.83);
   const [curl,setCurl]=useState(.66);
+  const [cortex,setCortex]=useState(1);
+  const [showHapters,setShowHapters]=useState(true);
+  const [contacts,setContacts]=useState(0);
+  const [hapters,setHapters]=useState(0);
   const [light,setLight]=useState(2.2);
   const [orbit,setOrbit]=useState(0);
   const [zoom,setZoom]=useState(1);
@@ -56,6 +60,8 @@ export default function App(){
       graphics.setPigment(pigment);
       graphics.setGrowthView(growthView);
       graphics.setRuffle(ruffle);graphics.setCurl(curl);
+      graphics.foliage.setCortex(cortex);
+      graphics.foliage.setHaptersVisible(showHapters);
       graphics.setOrbit(orbit);graphics.setLight(light);
       graphics.setZoom(zoom);graphics.setGrayscale(grayscale);
       graphics.onPlant=(x,y)=>{
@@ -93,6 +99,8 @@ export default function App(){
         if(now-ui>220){
           setYear(simulation.year);
           setCoverage(Math.round(simulation.occupied/(GRID*GRID)*100));
+          setContacts(graphics.foliage.contactCount);
+          setHapters(graphics.foliage.attachmentCount);
           ui=now;
         }
         graphics.render();
@@ -117,6 +125,8 @@ export default function App(){
   const changeView=(v:GrowthView)=>{setGrowthView(v);view.current?.setGrowthView(v);};
   const changeRuffle=(v:number)=>{setRuffle(v);view.current?.setRuffle(v);};
   const changeCurl=(v:number)=>{setCurl(v);view.current?.setCurl(v);};
+  const changeCortex=(v:number)=>{setCortex(v);view.current?.foliage.setCortex(v);};
+  const changeHapters=(v:boolean)=>{setShowHapters(v);view.current?.foliage.setHaptersVisible(v);};
   const changeZoom=(v:number)=>{setZoom(v);view.current?.setZoom(v);};
   const changeGrayscale=(v:boolean)=>{setGrayscale(v);view.current?.setGrayscale(v);};
   const savePNG=()=>{
@@ -137,7 +147,7 @@ export default function App(){
       <header className="topbar">
         <div className="brand">
           <span className="eyebrow">A LIVING MACROSCOPIC WORLD</span>
-          <strong>LICHENARIUM <em>01 / AREOLE</em></strong>
+          <strong>LICHENARIUM <em>02B / LOBE</em></strong>
         </div>
         <button className="small-button" onClick={savePNG} title="Save current canvas PNG">↓ PNG</button>
       </header>
@@ -193,8 +203,18 @@ export default function App(){
             <input type="range" min="0" max="1.6" step=".02" value={ruffle} onChange={e=>changeRuffle(Number(e.target.value))}/></label>
           <label className="control"><span>Desiccation-driven curling</span><b>{Math.round(curl*100)}%</b>
             <input type="range" min="0" max="1.5" step=".02" value={curl} onChange={e=>changeCurl(Number(e.target.value))}/></label>
-          <div className="stats"><span><b>{leafCount}</b> foliose rosettes</span><span><b>{lobeCount}</b> individual lobes</span></div>
-          <p className="annotation">These controls change physical tissue evolution as the century advances. The first shell solver has substrate nonpenetration, but complete leaf-to-leaf collision and photo-calibrated anatomy still need further work.</p>
+          <label className="control"><span>Upper cortex microrelief</span><b>{Math.round(cortex*100)}%</b>
+            <input type="range" min="0" max="2" step=".05" value={cortex} onChange={e=>changeCortex(Number(e.target.value))}/></label>
+          <label className="diagnostic-toggle"><input type="checkbox" checked={showHapters} onChange={e=>changeHapters(e.target.checked)}/>
+            <span><strong>Show pale underside holdfasts</strong><small>Sparse, short Xanthoria-inspired hapters—visible at macro angles</small></span>
+          </label>
+          <div className="stats">
+            <span><b>{leafCount}</b> foliose rosettes</span>
+            <span><b>{lobeCount}</b> living lobes</span>
+            <span><b>{hapters}</b> holdfasts</span>
+            <span><b>{contacts}</b> contact corrections</span>
+          </div>
+          <p className="annotation">Living tissue now uses a coarse spatial-hash contact pass, compression-driven tertiary corrugation, a pale lower cortex and sparse attachment structures. Contact is an approximation—not full continuous triangle collision.</p>
         </>}
         {tab==='material'&&<>
           <div className="panel-heading"><h2>Cortex pigmentation</h2><span>REAL GEOMETRY · ALIEN PALETTES</span></div>
@@ -221,7 +241,7 @@ export default function App(){
           <button className="outline" onClick={()=>{changeLight(2.2);changeOrbit(0);changeZoom(1);changeGrayscale(false);}}>RESET CAMERA + LIGHT</button>
         </>}
         <div className="notice">{message}</div>
-        <p className="scientific">PHASE 2 · AREOLE + LOBE now share one 100-year clock and moisture field. Foliose growth uses a persistent double-surface shell, margin-row deposition, rest-metric spring relaxation and moisture-linked curling. Still a biological-inspired engineering model, not calibrated natural growth. Pixie cups and offline MP4 remain upcoming.</p>
+        <p className="scientific">PHASE 2B · Coarse 3D foliose contact, stress-amplified fine folds, persistent cortex texture, pale underside and short hapter attachments. Growth is still an artist's bio-inspired structural model, not a validated lichen growth prediction. Full triangle collision, real microscopy matching, pixie cups and offline MP4 remain upcoming.</p>
       </div>
     </section>
   </main>;

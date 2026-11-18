@@ -49,3 +49,19 @@ Do side-by-side macro calibration against real `Rhizocarpon` images, improve por
 
 ### Phase 2B target
 Upgrade the foliose solver from bounded spring relaxation to adaptive mesh edge splitting, leaf–leaf contact constraints and wrinkled cortical ridges derived from persistent material stress; add realistic underside/rhizines and species-calibrated photo tests before proceeding to Cladonia scyphi.
+
+## 2026-11-18 — Phase 2B: mechanically layered foliose tissue
+
+**Source edits (implementation state, browser run pending):**
+- `src/engine/foliose.ts`: retains existing growing lobe shells, crust independence and fixed-step clock. Adds a spatial-hash local contact pass across DIFFERENT lobes, with a bounded lift of upper tissue and deterministic tie-breaking. Not continuous triangle collision.
+- Caches stable cortex pigment/noise and rest-rock sample coordinates, limiting the cost of per-frame tissue updates.
+- Couples stress-derived surface wrinkling to geometric rest-metric excess and continuing age-dependent compression. Existing tip-row growth, ruffling and moisture-dependent curling preserved.
+- Attaches a UV-stable micropitted cortical bump map to the existing MeshStandardMaterial. Provides `setCortex()` for direct material roughness intensity without altering growth history.
+- Sets *Xanthoria*-inspired lower cortex pale (rather than generic dark or fully saturated), and instantiates a limited number of short pale **hapters** underneath older lobes. These are an artistic proxy for attachment anatomy, not a claim about every species. Toggling visibility does not affect physics or growth.
+- `src/App.tsx`: exposes upper cortex microrelief slider, holdfast visibility control, contact correction count and anatomical statistics within the existing FOLIOSE tab.
+- `tests/foliose-2b.test.ts`: regression coverage for deterministic repeatability, stress state, substrate clearance, upper/lower color distinction, attachment instances and user-adjustable material behavior.
+- `package.json`: adds `npm run test:foliose-2b`, includes it in `test:engines`; no dependency additions.
+- **Reference correction:** Xanthoria-like lobes are pale underneath, and attachment anatomies vary (short hapters, sparse rhizines reported by some sources), so a dense dark-rhizine curtain would be inappropriate. References: [Xanthoria parietina taxon description](https://italic.units.it/index.php?num=2594&procedure=taxonpage), [Consortium of Lichen Herbaria Xanthoria genus](https://lichenportal.org/portal/taxa/index.php?clid=36860&pid=&taxauthid=1&tid=52249).
+- **Known limitations:** coarse vertex contact misses edge crossings, fully accurate self-collision and adaptive new triangles are not present, true cortex/medulla layering and realistic all-scale photography still need work. Avoid declaring macro photorealism from code alone.
+
+**Verification gate:** check GitHub branch/file state, then run `npm run test:engines`, `npm run lint`, `npm run build` and load Google AI Studio preview. Real Safari and color/lighting macro QA not yet run. No Netlify trigger was requested.

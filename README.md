@@ -52,3 +52,16 @@ These are science-inspired approximations; full real-photography calibration rem
 - Leaf-to-leaf collision, species-calibrated anatomy, matching to macro reference photos, photorealistic upper/lower textures, 30-second MP4, and GPU/phone profiling remain **future work**. Do not assume these are complete.
 
 No Netlify release was initiated. Preserve AI Studio Vite configuration.
+
+## Phase 2B — tissue contact and true underside (source update)
+
+- **Contact:** bounded, deterministic local spatial-hash **vertex-to-vertex** 2.5D separation of nearby *different* lobes. Higher tissue is pushed above lower tissue. This reduces intersections but is **not** a complete continuous triangle/triangle or same-lobe self-collision engine. Contact-correction counts are reported.
+- **Growth-driven secondary corrugation:** persistent compression measured from intrinsic material rest spans versus deformed tissue spans; seeded imperfections are amplified only where mechanical stress accumulates. No animated cosine filter pretending to be physical buckling.
+- **Upper cortex:** repeatable UV-attached pores/roughness/wrinkled microrelief on the three-dimensional shell, adjustable from the FOLIOSE tab.
+- **Pale lower cortex:** botanically recognizable pale underside instead of black or arbitrary inverted color.
+- **Sparse hapter attachments:** small, pale, real 3D basal holdfast meshes; intentionally sparse and short, closer to Xanthoria-style attachments than dense dangling rhizines. Toggle under FOLIOSE.
+- **Performance:** local broadphase instead of an all-polygons contact search; material statistics and rest-space height cached where appropriate. World-space rock clearance is revalidated after shape relaxation.
+- **Tests:** `npm run test:foliose-2b` and `npm run test:engines`. The tests are committed but must be run in Google AI Studio or a local development environment before their outcomes are claimed.
+- **No automatic deployment.** Do not use Netlify for development. Google AI Studio Vite/HMR settings are unchanged.
+
+This is a controlled, reversible improvement toward macro realism. **Remaining:** full surface-to-surface collision, species-calibrated morphogenesis, apothecia/basal anatomy validation, photo comparisons, and long-video export.
